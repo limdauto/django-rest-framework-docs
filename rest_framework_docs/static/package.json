@@ -39,6 +39,7 @@
     "bootswatch": "=3.3.6",
     "font-awesome": "=4.5.0",
     "jquery": "=1.11.3",
+    "js-cookie": "^2.1.2",
     "react": "=0.14.3",
     "react-dom": "=0.14.3",
     "superagent": "=1.6.1",

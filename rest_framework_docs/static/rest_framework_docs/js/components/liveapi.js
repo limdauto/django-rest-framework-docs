@@ -1,3 +1,4 @@
+var Cookies = require('js-cookie');
 var React = require('react');
 var APIRequest = require('superagent');
 
@@ -31,6 +32,12 @@ var LiveAPIEndpoints = React.createClass({
     if (this.refs.request.state.headers.authorization) {
       headers['Authorization'] = this.refs.request.state.headers.authorization;
     };
+
+    var csrftoken = Cookies.get('csrftoken');
+
+    if (csrftoken) {
+      headers["X-CSRFToken"] = csrftoken;
+    }
 
     var data = this.getData();
 
