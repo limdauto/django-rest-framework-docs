@@ -8,6 +8,7 @@ from rest_framework.serializers import BaseSerializer
 class ApiEndpoint(object):
 
     def __init__(self, pattern, parent_pattern=None, drf_router=None):
+        self.handler = None
         self.drf_router = drf_router
         self.pattern = pattern
         self.callback = pattern.callback
@@ -61,7 +62,10 @@ class ApiEndpoint(object):
                         )
                         viewset_methods = list(viewset_methods)
                         if len(set(funcs)) == 1:
-                            self.docstring = inspect.getdoc(getattr(self.callback.cls, funcs[0]))
+                            func_name = funcs[0]
+                            func = getattr(self.callback.cls, func_name)
+                            self.docstring = inspect.getdoc(func)
+                            self.handler = func
 
         view_methods = [force_str(m).upper() for m in self.callback.cls.http_method_names if hasattr(self.callback.cls, m)]
         return viewset_methods + view_methods
@@ -80,6 +84,9 @@ class ApiEndpoint(object):
             self.errors = e
 
     def __get_serializer_class__(self):
+        if self.handler is not None and hasattr(self.handler, 'serializer_class'):
+            return getattr(self.handler, 'serializer_class')
+
         if hasattr(self.callback.cls, 'serializer_class'):
             return self.callback.cls.serializer_class
 
