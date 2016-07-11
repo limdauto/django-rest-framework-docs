@@ -1,22 +1,24 @@
 import json
 import inspect
+import re
+
 from django.contrib.admindocs.views import simplify_regex
 from django.utils.encoding import force_str
+from django.utils.module_loading import import_string
 from rest_framework.serializers import BaseSerializer
 
 
 class ApiEndpoint(object):
 
     def __init__(self, pattern, parent_pattern=None, drf_router=None):
+        self.serializer_module = None
         self.drf_router = drf_router
         self.pattern = pattern
         self.callback = pattern.callback
-        # self.name = pattern.name
         self.docstring = self.__get_docstring__()
         self.name_parent = simplify_regex(parent_pattern.regex.pattern).strip('/') if parent_pattern else None
         self.path = self.__get_path__(parent_pattern)
         self.allowed_methods = self.__get_allowed_methods__()
-        # self.view_name = pattern.callback.__name__
         self.errors = None
         self.serializer_class = self.__get_serializer_class__()
         if self.serializer_class:
@@ -34,6 +36,7 @@ class ApiEndpoint(object):
     def __get_allowed_methods__(self):
 
         viewset_methods = []
+        serializer_docstring_pattern = re.compile(r'(?<=\:serializer\:\s)(.+)(?=\b)')
         if self.drf_router:
             for prefix, viewset, basename in self.drf_router.registry:
                 if self.callback.cls != viewset:
@@ -62,6 +65,12 @@ class ApiEndpoint(object):
                         viewset_methods = list(viewset_methods)
                         if len(set(funcs)) == 1:
                             self.docstring = inspect.getdoc(getattr(self.callback.cls, funcs[0]))
+                            if self.docstring:
+                                match = serializer_docstring_pattern.search(self.docstring)
+                                if match:
+                                    self.serializer_module = match.group()
+                                    self.docstring = self.docstring.replace(
+                                        ':serializer: %s' % self.serializer_module, '')
 
         view_methods = [force_str(m).upper() for m in self.callback.cls.http_method_names if hasattr(self.callback.cls, m)]
         return viewset_methods + view_methods
@@ -80,6 +89,9 @@ class ApiEndpoint(object):
             self.errors = e
 
     def __get_serializer_class__(self):
+        if self.serializer_module:
+            return import_string(self.serializer_module)
+
         if hasattr(self.callback.cls, 'serializer_class'):
             return self.callback.cls.serializer_class
 
