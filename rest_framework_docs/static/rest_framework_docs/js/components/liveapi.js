@@ -28,7 +28,10 @@ var LiveAPIEndpoints = React.createClass({
     var self = this;
     var request = this.refs.request.state;
 
-    var headers = {};
+    var headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    };
+
     if (this.refs.request.state.headers.authorization) {
       headers['Authorization'] = this.refs.request.state.headers.authorization;
     };
